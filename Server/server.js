@@ -843,51 +843,33 @@ const uploadImagesToCloudinary = async (files) => {
   );
 };
 
-// ✅ Extract and Verify User from Token
+// ✅ Middleware to verify token and get user
 const getUserFromToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return null;
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await Member.findById(decoded.id).select("-password");
-    return user || null;
+    return await Member.findById(decoded.id).select("-password");
   } catch (error) {
     return null;
   }
 };
 
 // ✅ Create an Item
-app.post("/list-item", upload.array("images", 5), async (req, res) => {
+app.post("/api/list-item", upload.array("images", 5), async (req, res) => {
   try {
     const user = await getUserFromToken(req, res);
+    if (!user) return res.status(401).json({ message: "Unauthorized." });
 
-    // ✅ Reject if no user is logged in
-    if (!user) {
-      return res
-        .status(401)
-        .json({ message: "Unauthorized. Please log in to list an item." });
-    }
-
-    const {
-      itemName,
-      description,
-      keywords,
-      category,
-      city,
-      condition,
-      swapOrGiveaway,
-      price,
-    } = req.body;
+    const { itemName, description, keywords, category, city, condition, swapOrGiveaway, price } = req.body;
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "At least 1 image is required." });
     }
 
-    // ✅ Upload images to Cloudinary
     const imageUrls = await uploadImagesToCloudinary(req.files);
 
-    // ✅ Store member details in the item database
     const newItem = new Item({
       itemName,
       description,
@@ -898,7 +880,7 @@ app.post("/list-item", upload.array("images", 5), async (req, res) => {
       condition,
       swapOrGiveaway,
       price,
-      memberID: user._id, // ✅ Store the logged-in member's ID
+      memberID: user._id,
       userName: `${user.firstName} ${user.lastName}`,
       email: user.email,
       mobile: user.mobile,
@@ -907,121 +889,12 @@ app.post("/list-item", upload.array("images", 5), async (req, res) => {
     await newItem.save();
     res.status(201).json({ message: "Item listed successfully!", newItem });
   } catch (error) {
-    console.error("Error listing item:", error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// ✅ Update an Item
-app.put("/update-item/:id", upload.array("images", 5), async (req, res) => {
-  try {
-    const user = await getUserFromToken(req, res);
-    if (!user)
-      return res.status(401).json({ message: "Unauthorized. Invalid token." });
-
-    const item = await Item.findById(req.params.id);
-    if (!item) return res.status(404).json({ message: "Item not found" });
-
-    if (item.memberID.toString() !== user._id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized to update this item" });
-    }
-
-    const {
-      itemName,
-      description,
-      keywords,
-      category,
-      city,
-      condition,
-      swapOrGiveaway,
-      price,
-    } = req.body;
-    let imageUrls = item.images;
-
-    // Upload new images if provided
-    if (req.files.length > 0) {
-      imageUrls = await uploadImagesToCloudinary(req.files);
-    }
-
-    // Update item details
-    item.itemName = itemName || item.itemName;
-    item.description = description || item.description;
-    item.keywords = keywords || item.keywords;
-    item.category = category || item.category;
-    item.images = imageUrls;
-    item.city = city || item.city;
-    item.condition = condition || item.condition;
-    item.swapOrGiveaway = swapOrGiveaway || item.swapOrGiveaway;
-    item.price = price || item.price;
-
-    await item.save();
-    res.status(200).json({ message: "Item updated successfully!", item });
-  } catch (error) {
-    console.error("Error updating item:", error);
-    res.status(500).json({ message: "Error updating item. Please try again." });
-  }
-});
-
-// ✅ Delete an Item
-// app.delete("/delete-item/:id", async (req, res) => {
-//   try {
-//     const user = await getUserFromToken(req, res);
-//     if (!user) return res.status(401).json({ message: "Unauthorized. Invalid token." });
-
-//     const item = await Item.findById(req.params.id);
-//     if (!item) return res.status(404).json({ message: "Item not found" });
-
-//     if (item.memberID.toString() !== user._id.toString()) {
-//       return res.status(403).json({ message: "Unauthorized to delete this item" });
-//     }
-
-//     await Item.findByIdAndDelete(req.params.id);
-//     res.status(200).json({ message: "Item deleted successfully!" });
-//   } catch (error) {
-//     console.error("Error deleting item:", error);
-//     res.status(500).json({ message: "Error deleting item. Please try again." });
-//   }
-// });
-
-app.delete("/delete-item/:id", async (req, res) => {
-  try {
-    const user = await getUserFromToken(req, res);
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized. Invalid token." });
-    }
-
-    const item = await Item.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({ message: "Item not found" });
-    }
-
-    // Allow admins and co-admins to delete any item
-    if (user.role === "admin" || user.role === "co-admin") {
-      await Item.findByIdAndDelete(req.params.id);
-      return res
-        .status(200)
-        .json({ message: "Item deleted successfully by Admin!" });
-    }
-
-    // Allow members to delete only their own items
-    if (item.memberID.toString() !== user.id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized to delete this item" });
-    }
-
-    await Item.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Item deleted successfully!" });
-  } catch (error) {
-    console.error("Error deleting item:", error);
-    res.status(500).json({ message: "Error deleting item. Please try again." });
-  }
-});
-
-// ✅ Get All Items with Pagination
-app.get("/items", async (req, res) => {
+// ✅ Get All Items
+app.get("/api/items", async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
     page = parseInt(page);
@@ -1033,73 +906,119 @@ app.get("/items", async (req, res) => {
       .sort({ createdAt: -1 });
 
     const totalItems = await Item.countDocuments();
-    res.status(200).json({
-      items,
-      totalItems,
-      page,
-      totalPages: Math.ceil(totalItems / limit),
-    });
+    res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
   } catch (error) {
-    console.error("Error fetching items:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching items. Please try again." });
+    res.status(500).json({ message: "Error fetching items." });
   }
 });
 
-app.get("/api/items", async (req, res) => {
+// ✅ Get Items Excluding Logged-in User's Listings
+app.get("/api/items/exclude-user", async (req, res) => {
   try {
-    let {
-      search,
-      category,
-      city,
-      swapOrGiveaway,
-      page = 1,
-      limit = 15,
-    } = req.query;
+    const user = await getUserFromToken(req, res);
+    if (!user) return res.status(401).json({ message: "Unauthorized." });
 
-    page = parseInt(page, 10);
-    limit = parseInt(limit, 10);
+    let { page = 1, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-    if (isNaN(page) || page < 1) page = 1;
-    if (isNaN(limit) || limit < 1) limit = 15;
-
-    const query = {};
-    if (search) query.itemName = { $regex: search, $options: "i" };
-    if (category && category !== "All Categories") query.category = category;
-    if (city) query.city = city;
-    if (swapOrGiveaway) query.swapOrGiveaway = swapOrGiveaway;
-
-    const totalItems = await Item.countDocuments(query);
-    const totalPages = Math.ceil(totalItems / limit);
-
-    const items = await Item.find(query)
+    const items = await Item.find({ memberID: { $ne: user._id } })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
-    res.status(200).json({ items, totalPages });
+    const totalItems = await Item.countDocuments({ memberID: { $ne: user._id } });
+    res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
   } catch (error) {
-    console.error("❌ Error fetching items:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching items. Please try again later." });
+    res.status(500).json({ message: "Error fetching items." });
   }
 });
 
-// ✅ Get an Item by ID
-app.get("/items/:id", async (req, res) => {
+// ✅ Get Only the Logged-in User's Items
+app.get("/api/items/user-items", async (req, res) => {
+  try {
+    const user = await getUserFromToken(req, res);
+    if (!user) return res.status(401).json({ message: "Unauthorized." });
+
+    let { page = 1, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const items = await Item.find({ memberID: user._id })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const totalItems = await Item.countDocuments({ memberID: user._id });
+    res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching items." });
+  }
+});
+
+// ✅ Get a Single Item by ID
+app.get("/api/items/:id", async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     res.status(200).json(item);
   } catch (error) {
-    console.error("Error fetching item:", error);
-    res.status(500).json({ message: "Error fetching item. Please try again." });
+    res.status(500).json({ message: "Error fetching item." });
   }
 });
 
-// Image Upload Route
+// ✅ Update an Item
+app.put("/api/update-item/:id", upload.array("images", 5), async (req, res) => {
+  try {
+    const user = await getUserFromToken(req, res);
+    if (!user) return res.status(401).json({ message: "Unauthorized." });
+
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    if (item.memberID.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized to update this item" });
+    }
+
+    const { itemName, description, keywords, category, city, condition, swapOrGiveaway, price } = req.body;
+    let imageUrls = item.images;
+
+    if (req.files.length > 0) {
+      imageUrls = await uploadImagesToCloudinary(req.files);
+    }
+
+    item.set({ itemName, description, keywords, category, images: imageUrls, city, condition, swapOrGiveaway, price });
+    await item.save();
+
+    res.status(200).json({ message: "Item updated successfully!", item });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating item." });
+  }
+});
+
+// ✅ Delete an Item
+app.delete("/api/delete-item/:id", async (req, res) => {
+  try {
+    const user = await getUserFromToken(req, res);
+    if (!user) return res.status(401).json({ message: "Unauthorized." });
+
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    if (user.role === "admin" || user.role === "co-admin" || item.memberID.toString() === user._id.toString()) {
+      await Item.findByIdAndDelete(req.params.id);
+      return res.status(200).json({ message: "Item deleted successfully!" });
+    }
+
+    res.status(403).json({ message: "Unauthorized to delete this item" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting item." });
+  }
+})
+
+
+
 app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });

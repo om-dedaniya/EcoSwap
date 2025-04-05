@@ -116,7 +116,7 @@ const ItemListing = () => {
 
     try {
       setLoading(true);
-      await axios.post("http://localhost:5000/list-item", formData, {
+      await axios.post("http://localhost:5000/api/list-item", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${localStorage.getItem("token")}`
