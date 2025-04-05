@@ -91,7 +91,7 @@ const Dashboard = () => {
           {[
             { to: "/dashboard/personal-info", label: "Personal Info", icon: FaUser },
             { to: "/dashboard/itemlist", label: "List Item", icon: FaClipboardList },
-            { to: "/dashboard/youritemlist", label: "Your Listed Item", icon: FaClipboardList },
+            { to: "/dashboard/user-listed-item", label: "Your Listed Item", icon: FaClipboardList },
             { to: "/dashboard/itemsearch", label: "Find Item", icon: FaSearch },
             { to: "/dashboard/announcement", label: "Announcements", icon: FaBullhorn },
             { to: "/dashboard/communitylist", label: "Community", icon: FaUsers },

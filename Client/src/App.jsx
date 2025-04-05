@@ -44,6 +44,7 @@ import UserQuery from "./Components/User/UserQuery";
 import Project from "./Components/User/Project"; // Ensure correct import
 import ChatBox from "./Components/User/ChatBox"; // Ensure correct import
 import ForgotPassword from "./Components/Home_Page/ForgotPassword";
+import UserListedItem from "./Components/User/UserListedItem";
 
 // Admin Pages
 import AdminDashboard from "./Components/Admin/AdminDashboard";
@@ -129,6 +130,7 @@ const App = () => {
           <Route path="announcement" element={<Announcement />} />
           <Route path="projects" element={<Project />} />
           <Route path="chat" element={<ChatBox />} />
+          <Route path="user-listed-item" element={<UserListedItem />} />
           
         </Route>
 
