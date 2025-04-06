@@ -12,7 +12,7 @@ const UserListedItem = () => {
       const token = localStorage.getItem("token");
       const { data } = await axios.get("http://localhost:5000/api/items/user-items", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { page: currentPage, limit: 10 },
+        params: { page: currentPage, limit: 9 },
       });
       setItems(data.items);
       setTotalPages(data.totalPages);
@@ -40,55 +40,76 @@ const UserListedItem = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h2 className="text-2xl font-bold text-center mb-6">📦 Your Listed Items</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
+        📦 Your Listed Items
+      </h2>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {items.length > 0 ? (
           items.map((item) => (
-            <div key={item._id} className="border p-4 rounded-lg shadow hover:shadow-lg transition">
+            <div
+              key={item._id}
+              className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow hover:shadow-xl transition duration-300"
+            >
               <img
-  src={
-    item.images?.length > 0 
-      ? item.images[0].startsWith("http") 
-        ? item.images[0] 
-        : `http://localhost:5000/uploads/${item.images[0]}`
-      : "/placeholder.png"
-  }
-  alt={item.itemName}
-  className="w-full h-48 object-cover rounded-lg"
-  onError={(e) => (e.target.src = "/placeholder.png")} // Fallback image
-/>
-
-              <h3 className="text-lg font-semibold mt-2">{item.itemName}</h3>
-              <p className="text-sm text-gray-600"><strong>Category:</strong> {item.category}</p>
-              <p className="text-sm text-gray-700"><strong>City:</strong> {item.city}</p>
-              <p className="text-sm text-gray-700"><strong>Type:</strong> {item.swapOrGiveaway}</p>
-              <button
-                onClick={() => handleDelete(item._id)}
-                className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 w-full"
-              >
-                🗑 Delete
-              </button>
+                src={
+                  item.images?.length > 0
+                    ? item.images[0].startsWith("http")
+                      ? item.images[0]
+                      : `http://localhost:5000/uploads/${item.images[0]}`
+                    : "/placeholder.png"
+                }
+                alt={item.itemName}
+                className="w-full h-48 object-cover"
+                onError={(e) => (e.target.src = "/placeholder.png")}
+              />
+              <div className="p-4 flex flex-col gap-2">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {item.itemName}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  <strong>Category:</strong> {item.category}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>City:</strong> {item.city}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Type:</strong> {item.swapOrGiveaway}
+                </p>
+                <button
+                  onClick={() => handleDelete(item._id)}
+                  className="mt-4 py-2 w-full bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium"
+                >
+                  🗑 Delete
+                </button>
+              </div>
             </div>
           ))
         ) : (
-          <p className="text-center col-span-3 text-gray-600">No items found.</p>
+          <p className="col-span-full text-center text-gray-500">
+            No items found.
+          </p>
         )}
       </div>
+
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-6">
+        <div className="flex justify-center items-center gap-4 mt-10">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             ⬅ Previous
           </button>
-          <span className="text-lg font-semibold">Page {currentPage} of {totalPages}</span>
+          <span className="text-gray-700 font-medium">
+            Page {currentPage} of {totalPages}
+          </span>
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Next ➡
           </button>
