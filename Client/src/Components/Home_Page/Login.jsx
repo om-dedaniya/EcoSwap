@@ -30,13 +30,16 @@ const Login = () => {
         formData
       );
 
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+      const { token, user } = response.data;
 
+      if (token) {
+        // ✅ Save token and role in localStorage
+        localStorage.setItem("token", token);
+        localStorage.setItem("role", user.role); // "admin", "co-admin", "user", etc.
+
+        // ✅ Redirect based on role
         const redirectPath =
-          response.data.user.role === "admin" ||
-          response.data.user.role === "co-admin"
+          user.role === "admin" || user.role === "co-admin"
             ? "/admin"
             : "/dashboard/personal-info";
 
@@ -46,8 +49,9 @@ const Login = () => {
       }
     } catch (error) {
       setMessage("Login failed. Please check your details.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

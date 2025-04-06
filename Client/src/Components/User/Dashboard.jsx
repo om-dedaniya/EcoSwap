@@ -3,18 +3,18 @@ import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 import {
-  FaBars, FaTimes, FaUser, FaClipboardList, FaSearch, FaBullhorn, FaUsers,
-  FaCalendarAlt, FaProjectDiagram, FaEnvelope, FaQuestionCircle, FaSignOutAlt
+  FaBars, FaTimes, FaUser , FaClipboardList, FaSearch, FaBullhorn, FaUsers,
+  FaCalendarAlt, FaProjectDiagram,FaCommentDots, FaEnvelope, FaQuestionCircle, FaSignOutAlt
 } from "react-icons/fa";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [user, setUser ] = useState(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false); // Start with sidebar closed on mobile
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser  = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -26,15 +26,20 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setUser(response.data);
+        setUser (response.data);
       } catch (error) {
         console.error("Error fetching user:", error);
         navigate("/login");
       }
     };
 
-    fetchUser();
+    fetchUser ();
   }, [navigate]);
+
+  // Close sidebar on location change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location]);
 
   const handleLogout = () => {
     Swal.fire({
@@ -89,12 +94,12 @@ const Dashboard = () => {
         {/* Navigation Links */}
         <nav className="space-y-3">
           {[
-            { to: "/dashboard/personal-info", label: "Personal Info", icon: FaUser },
+            { to: "/dashboard/personal-info", label: "Personal Info", icon: FaUser  },
             { to: "/dashboard/itemlist", label: "List Item", icon: FaClipboardList },
-            { to: "/dashboard/user-listed-item", label: "Your Listed Item", icon: FaClipboardList },
             { to: "/dashboard/itemsearch", label: "Find Item", icon: FaSearch },
+            { to: "/dashboard/user-listed-item", label: "Your Listed Item", icon: FaClipboardList },
             { to: "/dashboard/announcement", label: "Announcements", icon: FaBullhorn },
-            { to: "/dashboard/communitylist", label: "Community", icon: FaUsers },
+            { to: "/dashboard/review", label: "Review", icon: FaCommentDots },
             { to: "/dashboard/eventjoin", label: "Events", icon: FaCalendarAlt },
             { to: "/dashboard/projects", label: "Projects", icon: FaProjectDiagram },
             { to: "/dashboard/chat", label: "Messages", icon: FaEnvelope },
@@ -108,6 +113,7 @@ const Dashboard = () => {
                   ? "bg-green-500 text-white"
                   : "text-gray-700 hover:bg-green-100"
               }`}
+              onClick={() => setSidebarOpen(false)} // Close sidebar on link click
             >
               <Icon className="mr-3" />
               {label}
@@ -126,7 +132,7 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 p-6 bg-white ml-72 md:ml-0">
+      <div className={`flex-1 p-6 bg-white transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-0'} md:ml-0`}>
         {/* Mobile Sidebar Toggle */}
         <button className="md:hidden mb-4 text-gray-600" onClick={() => setSidebarOpen(true)}>
           <FaBars size={24} />

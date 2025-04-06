@@ -203,7 +203,7 @@ const sidebarItems = [
   { icon: faExchangeAlt, label: "Swaps", path: "/admin/itemshow" },
   { icon: faListAlt, label: "Events", path: "/admin/eventpost" },
   { icon: faListAlt, label: "Manage Event", path: "/admin/eventmanage" },
-  { icon: faListAlt, label: "Community", path: "/admin/admincommunity" },
+  { icon: faListAlt, label: "Reviews", path: "/admin/adminreview" },
   { icon: faObjectGroup, label: "Categories", path: "/admin/category" },
   { icon: faCogs, label: "Blog", path: "/admin/blogpost" },
   { icon: faBullhorn, label: "Announcement", path: "/admin/adminannouncement" },
