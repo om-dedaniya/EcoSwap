@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const ItemSearch = () => {
   const [allItems, setAllItems] = useState([]);
@@ -9,39 +10,31 @@ const ItemSearch = () => {
   const [category, setCategory] = useState("");
   const [swapOrGiveaway, setSwapOrGiveaway] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
-
-  const itemsPerPage = 15;
   const [currentPage, setCurrentPage] = useState(1);
 
+  const itemsPerPage = 15;
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const { data } = await axios.get(
-          "http://localhost:5000/api/items/exclude-user",
-          {
+        const [itemsRes, categoryRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/items/exclude-user", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setAllItems(data.items || []);
+          }),
+          axios.get("http://localhost:5000/categories"),
+        ]);
+
+        setAllItems(itemsRes.data.items || []);
+        setCategories(categoryRes.data || []);
       } catch (err) {
-        console.error("Error fetching items:", err);
+        console.error("Error fetching data:", err);
       }
     };
 
-    const fetchCategories = async () => {
-      try {
-        const { data } = await axios.get("http://localhost:5000/categories");
-        setCategories(data);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-      }
-    };
-
-    fetchItems();
-    fetchCategories();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -70,8 +63,27 @@ const ItemSearch = () => {
     currentPage * itemsPerPage
   );
 
-  const handleMessage = (item) => {
-    alert(`Message sent to the owner of "${item.itemName}"!`);
+  // components/User/ItemSearch.js
+  const handleMessage = async (item) => {
+    if (!item.owner || item.owner._id === userId) return;
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/chats", {
+        buyerId: userId,
+        sellerId: item.owner._id,
+        itemId: item._id,
+      });
+
+      const chatId = response.data._id;
+      navigate(`/dashboard/chat/${chatId}`);
+    } catch (err) {
+      console.error("Error accessing or creating chat:", err);
+    }
+  };
+
+  const handleImageClick = (imageUrl, e) => {
+    e.stopPropagation();
+    setSelectedImage(imageUrl);
   };
 
   return (
@@ -115,67 +127,66 @@ const ItemSearch = () => {
       {/* Items Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {paginatedItems.length > 0 ? (
-          paginatedItems.map((item) => (
-            <div
-              key={item._id}
-              className="border p-4 rounded-lg shadow hover:shadow-lg transition"
-            >
-              <img
-                src={
-                  item.images?.length > 0
-                    ? item.images[0].startsWith("http")
-                      ? item.images[0]
-                      : `http://localhost:5000/uploads/${item.images[0]}`
-                    : "/placeholder.png"
-                }
-                alt={item.itemName}
-                className="w-full h-48 object-cover rounded-lg cursor-pointer"
-                onClick={() => setSelectedImage(item.images[0])}
-                onError={(e) => (e.target.src = "/placeholder.png")}
-              />
-              <h3 className="text-lg font-semibold mt-2">{item.itemName}</h3>
-              <p className="text-sm text-gray-600">
-                <strong>Description:</strong> {item.description}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Category:</strong> {item.category}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Type:</strong> {item.swapOrGiveaway}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Condition:</strong> {item.condition || "N/A"}
-              </p>
-              {item.price && (
-                <p className="text-sm text-gray-700">
-                  <strong>Price:</strong> ₹{item.price}
-                </p>
-              )}
-              {item.tags?.length > 0 && (
-                <p className="text-sm text-gray-700">
-                  <strong>Tags:</strong> {item.tags.join(", ")}
-                </p>
-              )}
-              <p className="text-sm text-gray-700">
-                <strong>Posted:</strong>{" "}
-                {new Date(item.createdAt)
-                  .toLocaleDateString("en-GB")
-                  .replace(/\//g, "-")}
-              </p>
+          paginatedItems.map((item) => {
+            const firstImage = item.images?.[0]?.startsWith("http")
+              ? item.images[0]
+              : item.images?.[0]
+              ? `http://localhost:5000/uploads/${item.images[0]}`
+              : "/placeholder.png";
 
-              {item.owner?.name && (
-                <p className="text-sm text-gray-700">
-                  <strong>Owner:</strong> {item.owner.name}
-                </p>
-              )}
-              <button
-                onClick={() => handleMessage(item)}
-                className="mt-3 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 w-full"
+            return (
+              <div
+                key={item._id}
+                className="border p-4 rounded-lg shadow hover:shadow-lg transition"
               >
-                Message
-              </button>
-            </div>
-          ))
+                <img
+                  src={firstImage}
+                  alt={item.itemName}
+                  className="w-full h-48 object-cover rounded-lg cursor-pointer"
+                  onClick={(e) => handleImageClick(firstImage, e)}
+                  onError={(e) => (e.target.src = "/placeholder.png")}
+                />
+                <h3 className="text-lg font-semibold mt-2">{item.itemName}</h3>
+                <p className="text-sm text-gray-600">
+                  <strong>Description:</strong> {item.description}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Category:</strong> {item.category}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Type:</strong> {item.swapOrGiveaway}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Condition:</strong> {item.condition || "N/A"}
+                </p>
+                {item.price && (
+                  <p className="text-sm text-gray-700">
+                    <strong>Price:</strong> ₹{item.price}
+                  </p>
+                )}
+                {item.tags?.length > 0 && (
+                  <p className="text-sm text-gray-700">
+                    <strong>Tags:</strong> {item.tags.join(", ")}
+                  </p>
+                )}
+                <p className="text-sm text-gray-700">
+                  <strong>Posted:</strong>{" "}
+                  {new Date(item.createdAt).toLocaleDateString("en-GB")}
+                </p>
+                {item.owner?.name && (
+                  <p className="text-sm text-gray-700">
+                    <strong>Owner:</strong> {item.owner.name}
+                  </p>
+                )}
+                <button
+                  onClick={() => handleMessage(item)}
+                  className="mt-3 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 w-full"
+                >
+                  Message
+                </button>
+              </div>
+            );
+          })
         ) : (
           <p className="text-center col-span-3 text-gray-600">
             No items found.
@@ -230,7 +241,7 @@ const ItemSearch = () => {
               ✖
             </button>
             <img
-              src={`http://localhost:5000/uploads/${selectedImage}`}
+              src={selectedImage}
               alt="Full Size"
               className="max-w-full max-h-screen rounded-lg"
             />

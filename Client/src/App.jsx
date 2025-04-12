@@ -4,6 +4,7 @@ import {
   Route,
   Routes,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { Element } from "react-scroll";
 import ScrollToTop from "./Components/Home_Page/ScrollToTop";
@@ -50,7 +51,9 @@ import ItemSearch from "./Components/User/ItemSearch";
 import EventJoining from "./Components/User/EventJoining";
 import UserQuery from "./Components/User/UserQuery";
 import Project from "./Components/User/Project";
-import ChatBox from "./Components/User/ChatBox";
+import ChatList from "./Components/User/ChatList";
+import ChatWindow from "./Components/User/ChatWindow";
+import MessageInput from "./Components/User/MessageInput";
 import UserListedItem from "./Components/User/UserListedItem";
 import ReviewPage from "./Components/User/ReviewPage";
 
@@ -70,17 +73,11 @@ import AdminReviewPage from "./Components/Admin/AdminReviewPage";
 // Layout Wrapper
 const Layout = ({ children }) => {
   const location = useLocation();
-  const showNavbarFooter = [
-    "/",
-    "/faq",
-    "/privacypolicy",
-    "/termsandconditions",
-    "/disclaimer",
-    "/login",
-    "/signup",
-    "/blog/:id",
-    "/all-blogs",
-  ].includes(location.pathname);
+
+  const showNavbarFooter =
+    /^\/($|faq|privacypolicy|termsandconditions|disclaimer|login|signup|all-blogs|blog\/[\w-]+)$/.test(
+      location.pathname
+    );
 
   return (
     <>
@@ -91,60 +88,105 @@ const Layout = ({ children }) => {
   );
 };
 
+// Chat UI Layout
+const ChatLayout = () => {
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <div className="w-1/4 border-r bg-white">
+        <ChatList />
+      </div>
+      <div className="flex-1 flex flex-col">
+        <ChatWindow />
+        <MessageInput />
+      </div>
+    </div>
+  );
+};
+
+// Home Page as a separate component for cleanliness
+const Home = () => (
+  <>
+    <Header />
+    <LandingPage />
+    <Element name="aboutus-section">
+      <Aboutus />
+    </Element>
+    <Element name="categories-section">
+      <Categories />
+    </Element>
+    <Element name="recycle-section">
+      <ReuseRecycle />
+    </Element>
+    <Element name="benefits-section">
+      <RecyclingBenefits />
+    </Element>
+    <Element name="events-section">
+      <EventCommunity />
+    </Element>
+    <Element name="services-section">
+      <Whatdo />
+    </Element>
+    <Element name="mission-section">
+      <OurVision />
+    </Element>
+    <Element name="howitworks-section">
+      <HowItWorks />
+    </Element>
+    <Element name="whychooseus-section">
+      <WhyChooseEcoSwap />
+    </Element>
+    <Element name="success-stories-section">
+      <SuccessStory />
+    </Element>
+    <Element name="blog-section">
+      <BlogPage />
+    </Element>
+    <Element name="need-help-section">
+      <NeedHelp />
+    </Element>
+  </>
+);
+
+// Main App
 const App = () => {
   return (
     <Router>
       <ScrollToTop />
       <Layout>
         <Routes>
-          {/* Public Home Page */}
-          <Route
-            path="/"
-            element={
-              <>
-                <Header />
-                <LandingPage />
-                <Element name="aboutus-section">
-                  <Aboutus />
-                </Element>
-                <Element name="categories-section">
-                  <Categories />
-                </Element>
-                <Element name="recycle-section">
-                  <ReuseRecycle />
-                </Element>
-                <Element name="benefits-section">
-                  <RecyclingBenefits />
-                </Element>
-                <Element name="events-section">
-                  <EventCommunity />
-                </Element>
-                <Element name="services-section">
-                  <Whatdo />
-                </Element>
-                <Element name="mission-section">
-                  <OurVision />
-                </Element>
-                <Element name="howitworks-section">
-                  <HowItWorks />
-                </Element>
-                <Element name="whychooseus-section">
-                  <WhyChooseEcoSwap />
-                </Element>
-                <Element name="success-stories-section">
-                  <SuccessStory />
-                </Element>
-                <Element name="blog-section">
-                  <BlogPage />
-                </Element>
-                <Element name="need-help-section">
-                  <NeedHelp />
-                </Element>
-              </>
-            }
-          />
+          {/* 🌍 Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/privacypolicy" element={<PrivacyPolicy />} />
+          <Route path="/termsandconditions" element={<TermsConditions />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
+          <Route path="/all-blogs" element={<AllBlogs />} />
+          <Route path="/blog/:id" element={<FullBlog />} />
 
-          {/* 🔐 Protected Admin Routes */}
+          {/* 🔒 Auth Routes */}
+          <Route element={<AuthRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+          </Route>
+          <Route path="/forget-password" element={<ForgotPassword />} />
+
+          {/* 👤 Member Routes */}
+          <Route element={<ProtectedRoute allowedRoles={["member"]} />}>
+            <Route path="/dashboard" element={<Dashboard />}>
+              <Route path="personal-info" element={<PersonalInfo />} />
+              <Route path="itemlist" element={<ItemListing />} />
+              <Route path="itemsearch" element={<ItemSearch />} />
+              <Route path="eventjoin" element={<EventJoining />} />
+              <Route path="query" element={<UserQuery />} />
+              <Route path="announcement" element={<Announcement />} />
+              <Route path="projects" element={<Project />} />
+              <Route path="chat" element={<ChatLayout />} />
+              <Route path="user-listed-item" element={<UserListedItem />} />
+              <Route path="review" element={<ReviewPage />} />
+            </Route>
+          </Route>
+
+          {/* 🛠 Admin Routes */}
           <Route
             element={<ProtectedRoute allowedRoles={["admin", "co-admin"]} />}
           >
@@ -163,40 +205,8 @@ const App = () => {
             </Route>
           </Route>
 
-          {/* 🔐 Protected User Routes */}
-          <Route element={<ProtectedRoute allowedRoles={["member"]} />}>
-            <Route path="/dashboard" element={<Dashboard />}>
-              <Route path="personal-info" element={<PersonalInfo />} />
-              <Route path="itemlist" element={<ItemListing />} />
-              <Route path="itemsearch" element={<ItemSearch />} />
-              <Route path="eventjoin" element={<EventJoining />} />
-              <Route path="query" element={<UserQuery />} />
-              <Route path="announcement" element={<Announcement />} />
-              <Route path="projects" element={<Project />} />
-              <Route path="chat" element={<ChatBox />} />
-              <Route path="user-listed-item" element={<UserListedItem />} />
-              <Route path="review" element={<ReviewPage />} />
-            </Route>
-          </Route>
-
-          {/* 🔐 Auth Pages - redirect if logged in */}
-          <Route element={<AuthRoute />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-          </Route>
-
-          {/* Recovery */}
-          <Route path="/forget-password" element={<ForgotPassword />} />
-
-          {/* Blogs */}
-          <Route path="/all-blogs" element={<AllBlogs />} />
-          <Route path="/blog/:id" element={<FullBlog />} />
-
-          {/* Policies */}
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/privacypolicy" element={<PrivacyPolicy />} />
-          <Route path="/termsandconditions" element={<TermsConditions />} />
-          <Route path="/disclaimer" element={<Disclaimer />} />
+          {/* ❌ 404 Fallback */}
+          <Route path="*" element={<h2>404 - Page Not Found</h2>} />
         </Routes>
       </Layout>
     </Router>

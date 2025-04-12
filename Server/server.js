@@ -20,7 +20,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
   },
 });
@@ -69,6 +69,24 @@ const MemberSchema = new mongoose.Schema({
 });
 const Member = mongoose.model("Member", MemberSchema);
 
+// --- Message Schema ---
+const MessageSchema = new mongoose.Schema({
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member",
+    required: true,
+  },
+  receiver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member",
+    required: true,
+  },
+  message: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+});
+
+const Message = mongoose.model("Message", MessageSchema);
+
 // ✅ **OTP Schema**
 const OtpSchema = new mongoose.Schema({
   email: String,
@@ -112,35 +130,6 @@ const blogSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 const Blog = mongoose.model("Blog", blogSchema);
-
-// Item Listing Schema
-// const ItemSchema = new mongoose.Schema({
-//   itemName: { type: String, required: true, trim: true },
-//   description: { type: String, required: true, trim: true },
-//   keywords: { type: String, trim: true },
-//   category: { type: String, required: true, trim: true },
-//   images: { type: [String], required: true }, // ✅ Ensures images array is required
-//   city: { type: String, required: true, trim: true },
-//   condition: {
-//     type: String,
-//     enum: ["New", "Gently Used", "Heavily Used"],
-//     required: true,
-//   },
-//   swapOrGiveaway: { type: String, enum: ["Swap", "Giveaway"], required: true },
-//   price: { type: String, trim: true }, // ✅ Keep as string if price is optional or a label (e.g., "Free")
-
-//   // ✅ Store member info
-//   memberID: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "Member",
-//     required: true,
-//   },
-//   userName: { type: String, required: true, trim: true },
-//   email: { type: String, required: true, lowercase: true, trim: true },
-//   mobile: { type: String, required: true, trim: true },
-//   createdAt: { type: Date, default: Date.now }, // ✅ Keeps track of when the item was listed
-// });
-// const Item = mongoose.model("Item", ItemSchema);
 
 const ItemSchema = new mongoose.Schema({
   itemName: { type: String, required: true, trim: true },
@@ -217,18 +206,13 @@ const AnnouncementSchema = new mongoose.Schema({
 });
 const Announcement = mongoose.model("Announcement", AnnouncementSchema);
 
-const MessageSchema = new mongoose.Schema({
-  senderID: { type: mongoose.Schema.Types.ObjectId, ref: "Member", required: true },
-  receiverID: { type: mongoose.Schema.Types.ObjectId, ref: "Member", required: true },
-  message: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
-});
-
-const Message = mongoose.model("Message", MessageSchema);
-
 // Review Schema
 const ReviewSchema = new mongoose.Schema({
-  memberId: { type: mongoose.Schema.Types.ObjectId, ref: "Member", required: true },
+  memberId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member",
+    required: true,
+  },
   name: String,
   email: String,
   rating: { type: Number, required: true, min: 0, max: 5 },
@@ -237,6 +221,41 @@ const ReviewSchema = new mongoose.Schema({
 });
 
 const Review = mongoose.model("Review", ReviewSchema);
+
+// --- Chat Schema ---
+const chatSchema = new mongoose.Schema(
+  {
+    buyerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      required: true,
+    },
+    sellerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      required: true,
+    },
+    itemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Item",
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
+const Chat = mongoose.model("Chat", chatSchema);
+
+// --- ChatMessage Schema (renamed from Message) ---
+const ChatMessageSchema = new mongoose.Schema(
+  {
+    chatId: { type: mongoose.Schema.Types.ObjectId, ref: "Chat" },
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: "Member" },
+    text: String,
+  },
+  { timestamps: true }
+);
+const ChatMessage = mongoose.model("ChatMessage", ChatMessageSchema);
 
 const brevoClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = brevoClient.authentications["api-key"];
@@ -349,8 +368,6 @@ app.post("/send-otp", async (req, res) => {
     res.status(500).json({ message: "Email not sent. Try again later." });
   }
 });
-
-
 
 // ✅ **Route: Verify OTP and Signup**
 app.post("/signup", async (req, res) => {
@@ -810,7 +827,9 @@ app.get("/events/completed", async (req, res) => {
 
     res.status(200).json({ completedEvents });
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: error.message });
   }
 });
 
@@ -885,174 +904,22 @@ const getUserFromToken = async (req, res) => {
   }
 };
 
-// // ✅ Create an Item
-// app.post("/api/list-item", upload.array("images", 5), async (req, res) => {
-//   try {
-//     const user = await getUserFromToken(req, res);
-//     if (!user) return res.status(401).json({ message: "Unauthorized." });
-
-//     const { itemName, description, keywords, category, city, condition, swapOrGiveaway, price } = req.body;
-
-//     if (!req.files || req.files.length === 0) {
-//       return res.status(400).json({ message: "At least 1 image is required." });
-//     }
-
-//     const imageUrls = await uploadImagesToCloudinary(req.files);
-
-//     const newItem = new Item({
-//       itemName,
-//       description,
-//       keywords,
-//       category,
-//       images: imageUrls,
-//       city,
-//       condition,
-//       swapOrGiveaway,
-//       price,
-//       memberID: user._id,
-//       userName: `${user.firstName} ${user.lastName}`,
-//       email: user.email,
-//       mobile: user.mobile,
-//     });
-
-//     await newItem.save();
-//     res.status(201).json({ message: "Item listed successfully!", newItem });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// // ✅ Get All Items
-// app.get("/api/items", async (req, res) => {
-//   try {
-//     let { page = 1, limit = 10 } = req.query;
-//     page = parseInt(page);
-//     limit = parseInt(limit);
-
-//     const items = await Item.find()
-//       .skip((page - 1) * limit)
-//       .limit(limit)
-//       .sort({ createdAt: -1 });
-
-//     const totalItems = await Item.countDocuments();
-//     res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching items." });
-//   }
-// });
-
-// // ✅ Get Items Excluding Logged-in User's Listings
-// app.get("/api/items/exclude-user", async (req, res) => {
-//   try {
-//     const user = await getUserFromToken(req, res);
-//     if (!user) return res.status(401).json({ message: "Unauthorized." });
-
-//     let { page = 1, limit = 10 } = req.query;
-//     page = parseInt(page);
-//     limit = parseInt(limit);
-
-//     const items = await Item.find({ memberID: { $ne: user._id } })
-//       .skip((page - 1) * limit)
-//       .limit(limit)
-//       .sort({ createdAt: -1 });
-
-//     const totalItems = await Item.countDocuments({ memberID: { $ne: user._id } });
-//     res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching items." });
-//   }
-// });
-
-// // ✅ Get Only the Logged-in User's Items
-// app.get("/api/items/user-items", async (req, res) => {
-//   try {
-//     const user = await getUserFromToken(req, res);
-//     if (!user) return res.status(401).json({ message: "Unauthorized." });
-
-//     let { page = 1, limit = 10 } = req.query;
-//     page = parseInt(page);
-//     limit = parseInt(limit);
-
-//     const items = await Item.find({ memberID: user._id })
-//       .skip((page - 1) * limit)
-//       .limit(limit)
-//       .sort({ createdAt: -1 });
-
-//     const totalItems = await Item.countDocuments({ memberID: user._id });
-//     res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching items." });
-//   }
-// });
-
-// // ✅ Get a Single Item by ID
-// app.get("/api/items/:id", async (req, res) => {
-//   try {
-//     const item = await Item.findById(req.params.id);
-//     if (!item) return res.status(404).json({ message: "Item not found" });
-
-//     res.status(200).json(item);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching item." });
-//   }
-// });
-
-// // ✅ Update an Item
-// app.put("/api/update-item/:id", upload.array("images", 5), async (req, res) => {
-//   try {
-//     const user = await getUserFromToken(req, res);
-//     if (!user) return res.status(401).json({ message: "Unauthorized." });
-
-//     const item = await Item.findById(req.params.id);
-//     if (!item) return res.status(404).json({ message: "Item not found" });
-
-//     if (item.memberID.toString() !== user._id.toString()) {
-//       return res.status(403).json({ message: "Unauthorized to update this item" });
-//     }
-
-//     const { itemName, description, keywords, category, city, condition, swapOrGiveaway, price } = req.body;
-//     let imageUrls = item.images;
-
-//     if (req.files.length > 0) {
-//       imageUrls = await uploadImagesToCloudinary(req.files);
-//     }
-
-//     item.set({ itemName, description, keywords, category, images: imageUrls, city, condition, swapOrGiveaway, price });
-//     await item.save();
-
-//     res.status(200).json({ message: "Item updated successfully!", item });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error updating item." });
-//   }
-// });
-
-// // ✅ Delete an Item
-// app.delete("/api/delete-item/:id", async (req, res) => {
-//   try {
-//     const user = await getUserFromToken(req, res);
-//     if (!user) return res.status(401).json({ message: "Unauthorized." });
-
-//     const item = await Item.findById(req.params.id);
-//     if (!item) return res.status(404).json({ message: "Item not found" });
-
-//     if (user.role === "admin" || user.role === "co-admin" || item.memberID.toString() === user._id.toString()) {
-//       await Item.findByIdAndDelete(req.params.id);
-//       return res.status(200).json({ message: "Item deleted successfully!" });
-//     }
-
-//     res.status(403).json({ message: "Unauthorized to delete this item" });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error deleting item." });
-//   }
-// })
-
 // ✅ Create an Item
 app.post("/api/list-item", upload.array("images", 5), async (req, res) => {
   try {
     const user = await getUserFromToken(req, res);
     if (!user) return res.status(401).json({ message: "Unauthorized." });
 
-    const { itemName, description, keywords, category, city, condition, swapOrGiveaway, price } = req.body;
+    const {
+      itemName,
+      description,
+      keywords,
+      category,
+      city,
+      condition,
+      swapOrGiveaway,
+      price,
+    } = req.body;
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "At least 1 image is required." });
@@ -1080,7 +947,6 @@ app.post("/api/list-item", upload.array("images", 5), async (req, res) => {
   }
 });
 
-
 app.get("/api/items", async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
@@ -1094,12 +960,16 @@ app.get("/api/items", async (req, res) => {
       .sort({ createdAt: -1 });
 
     const totalItems = await Item.countDocuments();
-    res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
+    res.status(200).json({
+      items,
+      totalItems,
+      page,
+      totalPages: Math.ceil(totalItems / limit),
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching items." });
   }
 });
-
 
 app.get("/api/items/exclude-user", async (req, res) => {
   try {
@@ -1116,13 +986,19 @@ app.get("/api/items/exclude-user", async (req, res) => {
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    const totalItems = await Item.countDocuments({ memberID: { $ne: user._id } });
-    res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
+    const totalItems = await Item.countDocuments({
+      memberID: { $ne: user._id },
+    });
+    res.status(200).json({
+      items,
+      totalItems,
+      page,
+      totalPages: Math.ceil(totalItems / limit),
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching items." });
   }
 });
-
 
 app.get("/api/items/user-items", async (req, res) => {
   try {
@@ -1140,16 +1016,23 @@ app.get("/api/items/user-items", async (req, res) => {
       .sort({ createdAt: -1 });
 
     const totalItems = await Item.countDocuments({ memberID: user._id });
-    res.status(200).json({ items, totalItems, page, totalPages: Math.ceil(totalItems / limit) });
+    res.status(200).json({
+      items,
+      totalItems,
+      page,
+      totalPages: Math.ceil(totalItems / limit),
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching items." });
   }
 });
 
-
 app.get("/api/items/:id", async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id).populate("memberID", "firstName lastName email mobile");
+    const item = await Item.findById(req.params.id).populate(
+      "memberID",
+      "firstName lastName email mobile"
+    );
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     res.status(200).json(item);
@@ -1157,7 +1040,6 @@ app.get("/api/items/:id", async (req, res) => {
     res.status(500).json({ message: "Error fetching item." });
   }
 });
-
 
 app.put("/api/update-item/:id", upload.array("images", 5), async (req, res) => {
   try {
@@ -1168,17 +1050,38 @@ app.put("/api/update-item/:id", upload.array("images", 5), async (req, res) => {
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     if (item.memberID.toString() !== user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized to update this item" });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to update this item" });
     }
 
-    const { itemName, description, keywords, category, city, condition, swapOrGiveaway, price } = req.body;
+    const {
+      itemName,
+      description,
+      keywords,
+      category,
+      city,
+      condition,
+      swapOrGiveaway,
+      price,
+    } = req.body;
     let imageUrls = item.images;
 
     if (req.files.length > 0) {
       imageUrls = await uploadImagesToCloudinary(req.files);
     }
 
-    item.set({ itemName, description, keywords, category, images: imageUrls, city, condition, swapOrGiveaway, price });
+    item.set({
+      itemName,
+      description,
+      keywords,
+      category,
+      images: imageUrls,
+      city,
+      condition,
+      swapOrGiveaway,
+      price,
+    });
     await item.save();
 
     res.status(200).json({ message: "Item updated successfully!", item });
@@ -1186,7 +1089,6 @@ app.put("/api/update-item/:id", upload.array("images", 5), async (req, res) => {
     res.status(500).json({ message: "Error updating item." });
   }
 });
-
 
 app.delete("/api/delete-item/:id", async (req, res) => {
   try {
@@ -1196,7 +1098,11 @@ app.delete("/api/delete-item/:id", async (req, res) => {
     const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Item not found" });
 
-    if (user.role === "admin" || user.role === "co-admin" || item.memberID.toString() === user._id.toString()) {
+    if (
+      user.role === "admin" ||
+      user.role === "co-admin" ||
+      item.memberID.toString() === user._id.toString()
+    ) {
       await Item.findByIdAndDelete(req.params.id);
       return res.status(200).json({ message: "Item deleted successfully!" });
     }
@@ -1206,10 +1112,6 @@ app.delete("/api/delete-item/:id", async (req, res) => {
     res.status(500).json({ message: "Error deleting item." });
   }
 });
-
-
-
-
 
 app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {
@@ -1347,8 +1249,6 @@ const verifyAdmin = (req, res, next) => {
   });
 };
 
-
-
 // POST Event
 app.post("/api/events", async (req, res) => {
   try {
@@ -1424,26 +1324,41 @@ app.put("/api/events/:id", async (req, res) => {
   }
 });
 
-
 // Event Registration Route
 app.post("/api/join-event", async (req, res) => {
-  const { eventName, eventDate, eventLocation, memberName, email, mobile } = req.body;
+  const { eventName, eventDate, eventLocation, memberName, email, mobile } =
+    req.body;
 
-  if (!eventName || !eventDate || !eventLocation || !memberName || !email || !mobile) {
+  if (
+    !eventName ||
+    !eventDate ||
+    !eventLocation ||
+    !memberName ||
+    !email ||
+    !mobile
+  ) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
     // Check if the user has already joined this event
-    const existingRegistration = await JoinedEvent.findOne({ eventName, email });
+    const existingRegistration = await JoinedEvent.findOne({
+      eventName,
+      email,
+    });
 
     if (existingRegistration) {
-      return res.status(400).json({ message: "You have already joined this event." });
+      return res
+        .status(400)
+        .json({ message: "You have already joined this event." });
     }
 
     // Prepare email content
     const emailData = {
-      sender: { email: process.env.BREVO_SENDER_EMAIL, name: "Event Organizer" },
+      sender: {
+        email: process.env.BREVO_SENDER_EMAIL,
+        name: "Event Organizer",
+      },
       to: [{ email: email, name: memberName }],
       subject: "Event Registration Confirmation",
       htmlContent: `
@@ -1462,10 +1377,19 @@ app.post("/api/join-event", async (req, res) => {
     await apiInstance.sendTransacEmail(emailData);
 
     // If email is sent successfully, store data in MongoDB
-    const newJoinedEvent = new JoinedEvent({ eventName, eventDate, eventLocation, memberName, email, mobile });
+    const newJoinedEvent = new JoinedEvent({
+      eventName,
+      eventDate,
+      eventLocation,
+      memberName,
+      email,
+      mobile,
+    });
     await newJoinedEvent.save();
 
-    res.status(200).json({ message: "Successfully joined event! Confirmation email sent." });
+    res
+      .status(200)
+      .json({ message: "Successfully joined event! Confirmation email sent." });
   } catch (error) {
     console.error("❌ Error:", error);
 
@@ -1503,7 +1427,9 @@ app.post("/api/send-event-message", async (req, res) => {
     const participants = await JoinedEvent.find({ eventName });
 
     if (participants.length === 0) {
-      return res.status(400).json({ message: "No participants registered for this event." });
+      return res
+        .status(400)
+        .json({ message: "No participants registered for this event." });
     }
 
     // Format recipients for Brevo API
@@ -1514,7 +1440,10 @@ app.post("/api/send-event-message", async (req, res) => {
 
     // Prepare email content
     const emailData = {
-      sender: { email: process.env.BREVO_SENDER_EMAIL, name: "Event Organizer" },
+      sender: {
+        email: process.env.BREVO_SENDER_EMAIL,
+        name: "Event Organizer",
+      },
       to: recipients,
       subject: `Update for Event: ${eventName}`,
       htmlContent: `
@@ -1538,9 +1467,6 @@ app.post("/api/send-event-message", async (req, res) => {
     res.status(500).json({ message: "Error sending message. Try again." });
   }
 });
-
-
-
 
 // Store a new query from a logged-in user
 app.post("/queries", async (req, res) => {
@@ -1758,11 +1684,11 @@ io.on("connection", (socket) => {
   });
 });
 
-
 // Token verification middleware
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: "No token provided" });
+  if (!authHeader)
+    return res.status(401).json({ message: "No token provided" });
 
   const token = authHeader.split(" ")[1];
   try {
@@ -1785,7 +1711,9 @@ app.post("/api/review", authenticate, async (req, res) => {
     const { reviewText, rating } = req.body;
 
     if (!reviewText || !rating) {
-      return res.status(400).json({ message: "Review and rating are required" });
+      return res
+        .status(400)
+        .json({ message: "Review and rating are required" });
     }
 
     const newReview = new Review({
@@ -1810,10 +1738,107 @@ app.get("/api/reviews", async (req, res) => {
     const reviews = await Review.find().sort({ createdAt: -1 });
     res.json(reviews);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching reviews", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching reviews", error: err.message });
   }
+});
+
+// Create or get existing chat
+app.post("/api/chats", async (req, res) => {
+  try {
+    const { buyerId, sellerId, itemId } = req.body;
+
+    let chat = await Chat.findOne({ buyerId, sellerId, itemId });
+
+    if (!chat) {
+      chat = new Chat({ buyerId, sellerId, itemId });
+      await chat.save();
+    }
+
+    res.status(200).json(chat);
+  } catch (err) {
+    console.error("Create Chat Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get all chats for a user
+app.get("/api/chats/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const chats = await Chat.find({
+      $or: [{ buyerId: userId }, { sellerId: userId }],
+    }).populate("buyerId sellerId itemId");
+
+    res.status(200).json(chats);
+  } catch (err) {
+    console.error("Get Chats Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Find a specific chat between buyer & seller for an item
+app.get("/api/chats/find/:buyerId/:sellerId/:itemId", async (req, res) => {
+  try {
+    const { buyerId, sellerId, itemId } = req.params;
+
+    const chat = await Chat.findOne({ buyerId, sellerId, itemId });
+
+    res.status(200).json(chat);
+  } catch (err) {
+    console.error("Find Chat Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get all messages for a chat
+app.get("/api/messages/:chatId", async (req, res) => {
+  const messages = await ChatMessage.find({ chatId: req.params.chatId });
+  res.json(messages);
+});
+
+// Send a message
+app.post("/api/message", async (req, res) => {
+  const { chatId, senderId, text } = req.body;
+
+  const message = new ChatMessage({ chatId, sender: senderId, text });
+  await message.save();
+
+  await Chat.findByIdAndUpdate(chatId, { lastMessage: text });
+
+  io.to(chatId).emit("receiveMessage", message);
+  res.json(message);
+});
+
+// --- Socket.IO Events ---
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("joinRoom", (chatId) => {
+    socket.join(chatId);
+    console.log(`Joined room: ${chatId}`);
+  });
+
+  socket.on("sendMessage", async (data) => {
+    const { chatId, senderId, text } = data;
+
+    const message = new ChatMessage({ chatId, sender: senderId, text });
+    await message.save();
+
+    await Chat.findByIdAndUpdate(chatId, { lastMessage: text });
+
+    io.to(chatId).emit("receiveMessage", message);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
 });
 
 // ✅ **Start Server**
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`🚀 Server with Socket.IO running on port ${PORT}`)
+);
