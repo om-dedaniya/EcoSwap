@@ -13,7 +13,9 @@ const EventCommunity = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/user-events");
+        const response = await axios.get(
+          "https://ecoswap-e24p.onrender.com/api/user-events"
+        );
         setEvents(response.data);
         setLoading(false);
       } catch (err) {
@@ -26,6 +28,7 @@ const EventCommunity = () => {
   }, []);
 
   const cycleArray = (array, index) => {
+    if (array.length <= 3) return array; // No cycling if less than or equal to 3 events
     return [
       ...array.slice(index, index + 3),
       ...array.slice(0, Math.max(0, 3 - (array.length - index))),
@@ -50,51 +53,77 @@ const EventCommunity = () => {
   };
 
   return (
-    <div className="min-h-95 bg-gradient-to-b from-[#C8E6C9] to-[#E8F5E9] p-8">
-      {/* Upcoming Events Section */}
-      <section className="mt-4">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-center text-blue-800 mb-8">
-          📅 Upcoming Events
+    <div className=" bg-gradient-to-br from-green-100 via-white to-green-50 py-20 px-6 md:px-12">
+      <section>
+        <h2 className="text-5xl font-extrabold text-center text-green-800 mb-6 tracking-tight">
+          🌍 Community Events
         </h2>
+        <p className="text-center text-gray-600 mb-12 text-lg max-w-2xl mx-auto">
+          Discover exciting eco-friendly events and initiatives in your
+          community!
+        </p>
+
         {loading ? (
-          <p className="text-center text-gray-700">Loading events...</p>
+          <p className="text-center text-gray-600 text-lg">Loading events...</p>
         ) : error ? (
-          <p className="text-center text-red-500">{error}</p>
+          <p className="text-center text-red-500 text-lg">{error}</p>
         ) : events.length === 0 ? (
-          <p className="text-center text-gray-700">No upcoming events found.</p>
+          <p className="text-center text-gray-600 text-lg">
+            No upcoming events found.
+          </p>
         ) : (
           <div className="flex items-center justify-center">
-            <button
-              className="text-3xl text-blue-600 hover:text-blue-800 transition duration-300 mx-2"
-              onClick={() =>
-                setEventIndex((eventIndex - 3 + events.length) % events.length)
-              }
+            {/* Prev Button */}
+            {events.length > 3 && (
+              <button
+                className="text-4xl text-green-700 hover:text-green-900 transition duration-300 mx-4"
+                onClick={() =>
+                  setEventIndex(
+                    (eventIndex - 3 + events.length) % events.length
+                  )
+                }
+              >
+                ❮
+              </button>
+            )}
+
+            {/* Events Grid */}
+            <div
+              className={`grid grid-cols-1 ${
+                events.length >= 2 ? "md:grid-cols-3" : ""
+              } gap-10 w-full max-w-7xl`}
             >
-              ❮
-            </button>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mx-4 w-full max-w-6xl">
               {cycleArray(events, eventIndex).map((event) => (
                 <div
                   key={event._id}
-                  className="bg-white bg-opacity-80 backdrop-blur-lg shadow-lg rounded-xl p-6 transition-transform transform hover:scale-105"
+                  className="bg-white bg-opacity-70 backdrop-blur-lg rounded-2xl p-6 shadow-xl transition-transform transform hover:scale-105 border border-green-100"
                 >
                   <span
-                    className={`px-3 py-1 text-sm font-bold rounded-full text-white ${
-                      event.eventType === "Virtual" ? "bg-blue-500" : "bg-green-500"
+                    className={`px-3 py-1 text-xs font-semibold rounded-full text-white ${
+                      event.eventType === "Virtual"
+                        ? "bg-blue-500"
+                        : "bg-green-500"
                     }`}
                   >
                     {event.eventType} Event
                   </span>
-                  <h3 className="text-2xl font-semibold text-gray-900 mt-4">
+                  <h3 className="mt-4 text-2xl font-bold text-gray-900 leading-snug">
                     {event.eventName}
                   </h3>
-                  <p className="text-gray-700 mt-2">📅 {event.eventDate}</p>
-                  <p className="text-gray-700 mt-1">📍 {event.location}</p>
-                  <p className="text-gray-700 mt-1">
-                    👥 {event.totalParticipants} participants
-                  </p>
+                  <ul className="mt-3 text-sm text-gray-700 space-y-1">
+                    <li>
+                      📅 <strong>Date:</strong> {event.eventDate}
+                    </li>
+                    <li>
+                      📍 <strong>Location:</strong> {event.location}
+                    </li>
+                    <li>
+                      👥 <strong>Participants:</strong>{" "}
+                      {event.totalParticipants}
+                    </li>
+                  </ul>
                   <button
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full w-full transition duration-300"
+                    className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-full transition duration-300"
                     onClick={handleRegisterClick}
                   >
                     Register Now
@@ -102,14 +131,16 @@ const EventCommunity = () => {
                 </div>
               ))}
             </div>
-            <button
-              className="text-3xl text-blue-600 hover:text-blue-800 transition duration-300 mx-2"
-              onClick={() =>
-                setEventIndex((eventIndex + 3) % events.length)
-              }
-            >
-              ❯
-            </button>
+
+            {/* Next Button */}
+            {events.length > 3 && (
+              <button
+                className="text-4xl text-green-700 hover:text-green-900 transition duration-300 mx-4"
+                onClick={() => setEventIndex((eventIndex + 3) % events.length)}
+              >
+                ❯
+              </button>
+            )}
           </div>
         )}
       </section>

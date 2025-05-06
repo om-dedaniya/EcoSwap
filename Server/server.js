@@ -69,24 +69,6 @@ const MemberSchema = new mongoose.Schema({
 });
 const Member = mongoose.model("Member", MemberSchema);
 
-// --- Message Schema ---
-const MessageSchema = new mongoose.Schema({
-  sender: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Member",
-    required: true,
-  },
-  receiver: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Member",
-    required: true,
-  },
-  message: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
-});
-
-const Message = mongoose.model("Message", MessageSchema);
-
 // ✅ **OTP Schema**
 const OtpSchema = new mongoose.Schema({
   email: String,
@@ -135,7 +117,11 @@ const ItemSchema = new mongoose.Schema({
   itemName: { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
   keywords: { type: String, trim: true },
-  category: { type: String, required: true, trim: true },
+  category: {
+    type: mongoose.Schema.Types.ObjectID,
+    ref: "Category",
+    required: true,
+  },
   images: { type: [String], required: true },
   city: { type: String, required: true, trim: true },
   condition: {
@@ -150,7 +136,6 @@ const ItemSchema = new mongoose.Schema({
   },
   price: { type: String, trim: true },
 
-  // ✅ Only store member reference
   memberID: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Member",
@@ -159,6 +144,8 @@ const ItemSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now },
 });
+// Optional: create indexes to improve search performance
+ItemSchema.index({ itemName: "text", keywords: "text" });
 
 const Item = mongoose.model("Item", ItemSchema);
 
@@ -188,11 +175,13 @@ const JoinedEvent = mongoose.model("JoinedEvent", JoinedEventSchema);
 const QuerySchema = new mongoose.Schema({
   userName: String,
   userEmail: String,
+  unreadCount: { type: Number, default: 0 }, // Tracks unread admin messages
   messages: [
     {
       message: String,
       sender: String, // "user" or "admin"
       timestamp: { type: Date, default: Date.now },
+      read: { type: Boolean, default: false }, // Track if message is read
     },
   ],
 });
@@ -222,7 +211,6 @@ const ReviewSchema = new mongoose.Schema({
 
 const Review = mongoose.model("Review", ReviewSchema);
 
-// --- Chat Schema ---
 const chatSchema = new mongoose.Schema(
   {
     buyerId: {
@@ -240,14 +228,24 @@ const chatSchema = new mongoose.Schema(
       ref: "Item",
       required: true,
     },
+    messages: [
+      {
+        senderId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Member",
+          required: true,
+        },
+        text: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    lastMessage: { type: String },
   },
   { timestamps: true }
 );
-
 const Chat = mongoose.model("Chat", chatSchema);
 
-// --- ChatMessage Schema (renamed from Message) ---
-const ChatMessageSchema = new mongoose.Schema(
+const chatMessageSchema = new mongoose.Schema(
   {
     chatId: { type: mongoose.Schema.Types.ObjectId, ref: "Chat" },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "Member" },
@@ -255,7 +253,25 @@ const ChatMessageSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const ChatMessage = mongoose.model("ChatMessage", ChatMessageSchema);
+
+const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);
+
+const MessageSchema = new mongoose.Schema({
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member",
+    required: true,
+  },
+  receiver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member",
+    required: true,
+  },
+  message: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+});
+
+const Message = mongoose.model("Message", MessageSchema);
 
 const brevoClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = brevoClient.authentications["api-key"];
@@ -436,7 +452,7 @@ app.post("/login", async (req, res) => {
       const token = jwt.sign(
         { id: user._id, role: "member" },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "2d" }
       );
       return res.json({
         message: "Login successful",
@@ -805,8 +821,36 @@ app.get("/api/items/count", async (req, res) => {
 app.get("/api/items/count-by-category", async (req, res) => {
   try {
     const categoryCounts = await Item.aggregate([
-      { $group: { _id: "$category", count: { $sum: 1 } } }, // ✅ Groups by category and counts items
-      { $sort: { count: -1 } }, // ✅ Sorts by highest count first
+      {
+        $group: {
+          _id: "$category", // Group by category ID
+          count: { $sum: 1 }, // Count items in each group
+        },
+      },
+      {
+        $lookup: {
+          from: "categories", // The MongoDB collection name (lowercase, pluralized by Mongoose)
+          localField: "_id", // The field from the Item collection (category ID)
+          foreignField: "_id", // The field from the Category collection
+          as: "categoryDetails", // The output array field
+        },
+      },
+      {
+        $unwind: "$categoryDetails", // Flatten the categoryDetails array
+      },
+      {
+        $project: {
+          _id: 0, // Exclude the default _id field
+          category: {
+            _id: "$_id", // Include category ID
+            name: "$categoryDetails.name", // Include category name
+          },
+          count: 1, // Include the count
+        },
+      },
+      {
+        $sort: { count: -1 }, // Sort by count in descending order
+      },
     ]);
 
     res.status(200).json(categoryCounts);
@@ -898,7 +942,16 @@ const getUserFromToken = async (req, res) => {
     if (!token) return null;
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return await Member.findById(decoded.id).select("-password");
+
+    // First try to find the user in Member collection
+    let user = await Member.findById(decoded.id).select("-password");
+    if (user) return user;
+
+    // Then try Admin collection
+    user = await Admin.findById(decoded.id).select("-password");
+    if (user) return user;
+
+    return null; // No user found in either
   } catch (error) {
     return null;
   }
@@ -947,28 +1000,35 @@ app.post("/api/list-item", upload.array("images", 5), async (req, res) => {
   }
 });
 
-app.get("/api/items", async (req, res) => {
+const fetchItems = async (query, page, limit, res) => {
   try {
-    let { page = 1, limit = 10 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 10;
 
-    const items = await Item.find()
+    const items = await Item.find(query)
       .populate("memberID", "firstName lastName email mobile")
+      .populate("category", "name") // Populates category with _id and name
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    const totalItems = await Item.countDocuments();
-    res.status(200).json({
+    const totalItems = await Item.countDocuments(query);
+
+    return res.status(200).json({
       items,
       totalItems,
       page,
       totalPages: Math.ceil(totalItems / limit),
     });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching items." });
+    return res.status(500).json({ message: "Error fetching items." });
   }
+};
+
+// GET /api/items - Fetch all items
+app.get("/api/items", async (req, res) => {
+  const { page, limit } = req.query;
+  await fetchItems({}, page, limit, res);
 });
 
 app.get("/api/items/exclude-user", async (req, res) => {
@@ -976,27 +1036,10 @@ app.get("/api/items/exclude-user", async (req, res) => {
     const user = await getUserFromToken(req, res);
     if (!user) return res.status(401).json({ message: "Unauthorized." });
 
-    let { page = 1, limit = 10 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-
-    const items = await Item.find({ memberID: { $ne: user._id } })
-      .populate("memberID", "firstName lastName email mobile")
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const totalItems = await Item.countDocuments({
-      memberID: { $ne: user._id },
-    });
-    res.status(200).json({
-      items,
-      totalItems,
-      page,
-      totalPages: Math.ceil(totalItems / limit),
-    });
+    const { page, limit } = req.query;
+    await fetchItems({ memberID: { $ne: user._id } }, page, limit, res);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching items." });
+    return res.status(500).json({ message: "Error fetching items." });
   }
 });
 
@@ -1005,34 +1048,19 @@ app.get("/api/items/user-items", async (req, res) => {
     const user = await getUserFromToken(req, res);
     if (!user) return res.status(401).json({ message: "Unauthorized." });
 
-    let { page = 1, limit = 10 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-
-    const items = await Item.find({ memberID: user._id })
-      .populate("memberID", "firstName lastName email mobile")
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const totalItems = await Item.countDocuments({ memberID: user._id });
-    res.status(200).json({
-      items,
-      totalItems,
-      page,
-      totalPages: Math.ceil(totalItems / limit),
-    });
+    const { page, limit } = req.query;
+    await fetchItems({ memberID: user._id }, page, limit, res);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching items." });
+    return res.status(500).json({ message: "Error fetching items." });
   }
 });
 
 app.get("/api/items/:id", async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id).populate(
-      "memberID",
-      "firstName lastName email mobile"
-    );
+    const item = await Item.findById(req.params.id)
+      .populate("memberID", "firstName lastName email mobile")
+      .populate("category", "name"); // Populates category with _id and name
+
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     res.status(200).json(item);
@@ -1652,31 +1680,22 @@ app.delete("/api/announcements/:id", async (req, res) => {
   }
 });
 
-// ✅ Fetch chat history
-app.get("/api/chat/:senderID/:receiverID", async (req, res) => {
-  const { senderID, receiverID } = req.params;
-  try {
-    const messages = await Message.find({
-      $or: [
-        { senderID, receiverID },
-        { senderID: receiverID, receiverID: senderID },
-      ],
-    }).sort({ timestamp: 1 });
-    res.json(messages);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch messages" });
-  }
-});
-
-// ✅ Real-time chat logic
+// Socket.IO Connection
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("sendMessage", async ({ senderID, receiverID, message }) => {
-    const newMessage = new Message({ senderID, receiverID, message });
-    await newMessage.save();
+  socket.on("joinRoom", (chatId) => {
+    socket.join(chatId);
+    console.log(`User joined room: ${chatId}`);
+  });
 
-    io.emit("receiveMessage", newMessage); // Send message to all connected clients
+  socket.on("sendMessage", (message) => {
+    io.to(message.chatId).emit("receiveMessage", message);
+  });
+
+  socket.on("leaveRoom", (chatId) => {
+    socket.leave(chatId);
+    console.log(`User left room: ${chatId}`);
   });
 
   socket.on("disconnect", () => {
@@ -1745,14 +1764,19 @@ app.get("/api/reviews", async (req, res) => {
 });
 
 // Create or get existing chat
+
 app.post("/api/chats", async (req, res) => {
   try {
     const { buyerId, sellerId, itemId } = req.body;
 
+    if (!buyerId || !sellerId || !itemId) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
     let chat = await Chat.findOne({ buyerId, sellerId, itemId });
 
     if (!chat) {
-      chat = new Chat({ buyerId, sellerId, itemId });
+      chat = new Chat({ buyerId, sellerId, itemId, messages: [] });
       await chat.save();
     }
 
@@ -1763,10 +1787,57 @@ app.post("/api/chats", async (req, res) => {
   }
 });
 
-// Get all chats for a user
-app.get("/api/chats/:userId", async (req, res) => {
+app.post("/api/chats/:chatId/message", async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const { chatId } = req.params;
+    const { sender, text } = req.body;
+
+    if (!sender || !text) {
+      return res.status(400).json({ message: "Sender and text are required" });
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+    const message = { sender, text };
+    chat.messages.push(message);
+    chat.lastMessage = text;
+    await chat.save();
+
+    io.to(chatId).emit("receiveMessage", message);
+
+    res.status(201).json(message);
+  } catch (err) {
+    console.error("Send Message Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/api/chats", async (req, res) => {
+  try {
+    const { buyerId, sellerId, itemId } = req.body;
+
+    if (!buyerId || !sellerId || !itemId) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    let chat = await Chat.findOne({ buyerId, sellerId, itemId });
+
+    if (!chat) {
+      chat = new Chat({ buyerId, sellerId, itemId, messages: [] });
+      await chat.save();
+    }
+
+    res.status(200).json(chat);
+  } catch (err) {
+    console.error("Create Chat Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/chats/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
 
     const chats = await Chat.find({
       $or: [{ buyerId: userId }, { sellerId: userId }],
@@ -1774,7 +1845,21 @@ app.get("/api/chats/:userId", async (req, res) => {
 
     res.status(200).json(chats);
   } catch (err) {
-    console.error("Get Chats Error:", err);
+    console.error("Get User Chats Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/chats/:chatId/messages", async (req, res) => {
+  try {
+    const chat = await Chat.findById(req.params.chatId).populate(
+      "messages.sender"
+    );
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+    res.status(200).json(chat.messages);
+  } catch (err) {
+    console.error("Get Messages Error:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -1793,48 +1878,119 @@ app.get("/api/chats/find/:buyerId/:sellerId/:itemId", async (req, res) => {
   }
 });
 
-// Get all messages for a chat
 app.get("/api/messages/:chatId", async (req, res) => {
-  const messages = await ChatMessage.find({ chatId: req.params.chatId });
-  res.json(messages);
+  try {
+    const chat = await Chat.findById(req.params.chatId);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+    res.status(200).json(chat.messages);
+  } catch (err) {
+    console.error("Get Messages Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// Send a message
 app.post("/api/message", async (req, res) => {
-  const { chatId, senderId, text } = req.body;
+  try {
+    const { chatId, senderId, text } = req.body;
 
-  const message = new ChatMessage({ chatId, sender: senderId, text });
-  await message.save();
+    if (!chatId || !senderId || !text) {
+      return res
+        .status(400)
+        .json({ message: "chatId, senderId, and text are required" });
+    }
 
-  await Chat.findByIdAndUpdate(chatId, { lastMessage: text });
+    // Validate chatId and senderId as ObjectId
+    if (
+      !mongoose.Types.ObjectId.isValid(chatId) ||
+      !mongoose.Types.ObjectId.isValid(senderId)
+    ) {
+      return res.status(400).json({ message: "Invalid chatId or senderId" });
+    }
 
-  io.to(chatId).emit("receiveMessage", message);
-  res.json(message);
-});
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
 
-// --- Socket.IO Events ---
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+    // Determine receiverId (the other participant in the chat)
+    const receiverId =
+      chat.buyerId.toString() === senderId ? chat.sellerId : chat.buyerId;
+    if (!receiverId) {
+      return res.status(400).json({ message: "Unable to determine receiver" });
+    }
 
-  socket.on("joinRoom", (chatId) => {
-    socket.join(chatId);
-    console.log(`Joined room: ${chatId}`);
-  });
-
-  socket.on("sendMessage", async (data) => {
-    const { chatId, senderId, text } = data;
-
-    const message = new ChatMessage({ chatId, sender: senderId, text });
-    await message.save();
-
-    await Chat.findByIdAndUpdate(chatId, { lastMessage: text });
+    const message = { senderId, text, timestamp: new Date() };
+    chat.messages.push(message);
+    chat.lastMessage = text;
+    await chat.save();
 
     io.to(chatId).emit("receiveMessage", message);
-  });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-  });
+    res.status(201).json(message);
+  } catch (err) {
+    console.error("Send Message Error:", err.message, err.stack);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+// Routes
+app.get("/api/search/items", async (req, res) => {
+  const { itemName } = req.query;
+
+  if (!itemName || itemName.trim() === "") {
+    return res
+      .status(400)
+      .json({ message: "itemName query parameter is required" });
+  }
+
+  try {
+    // Get the logged-in user
+    const user = await getUserFromToken(req, res);
+    if (!user) {
+      return res
+        .status(401)
+        .json({ message: "Authentication token required or invalid" });
+    }
+
+    // Search for items by itemName (case-insensitive) and exclude user's own items
+    const items = await Item.find({
+      itemName: { $regex: itemName, $options: "i" }, // Case-insensitive search
+      memberID: { $ne: user._id }, // Exclude items posted by the logged-in user
+    }).populate("memberID", "firstName lastName"); // Optional: Populate seller info
+
+    if (items.length === 0) {
+      return res.status(404).json({ message: "No items found" });
+    }
+
+    return res.status(200).json(items);
+  } catch (error) {
+    console.error("Item search error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/item/dashboard/search", async (req, res) => {
+  const searchQuery = req.query.q;
+
+  if (!searchQuery) {
+    return res.status(400).json({ error: "Search query is required" });
+  }
+
+  // Split search string into words and build regex OR conditions
+  const words = searchQuery.trim().split(/\s+/);
+  const regexConditions = words.map((word) => ({
+    itemName: { $regex: word, $options: "i" },
+  }));
+
+  try {
+    const items = await Item.find({ $or: regexConditions })
+      .limit(10)
+      .populate("category", "name")
+      .populate("memberID", "username");
+
+    res.json(items);
+  } catch (error) {
+    console.error("Error searching items:", error);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // ✅ **Start Server**

@@ -26,7 +26,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/login",
+        "https://ecoswap-e24p.onrender.com/login",
         formData
       );
 
@@ -77,7 +77,7 @@ const Login = () => {
           <input
             type="text"
             name="userInput"
-            placeholder="Email"
+            placeholder="Email or Mobile No."
             value={formData.userInput}
             onChange={handleChange}
             required

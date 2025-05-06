@@ -22,7 +22,10 @@ const AddAdminCoAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:5000/admin/add", formData);
+      const res = await axios.post(
+        "https://ecoswap-e24p.onrender.com/admin/add",
+        formData
+      );
       alert(res.data.message);
       navigate("/admin-dashboard"); // Redirect after adding user
     } catch (error) {
@@ -33,7 +36,9 @@ const AddAdminCoAdmin = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="w-full max-w-lg bg-white shadow-lg rounded-lg p-6">
-        <h2 className="text-2xl font-semibold text-gray-800 text-center mb-4">Add Admin / Co-Admin</h2>
+        <h2 className="text-2xl font-semibold text-gray-800 text-center mb-4">
+          Add Admin / Co-Admin
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"

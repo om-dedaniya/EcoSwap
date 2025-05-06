@@ -28,6 +28,7 @@ import WhyChooseEcoSwap from "./Components/Home_Page/WhyChooseEcoSwap";
 import SuccessStory from "./Components/Home_Page/SuccessStory";
 import BlogPage from "./Components/Home_Page/BlogPage";
 import NeedHelp from "./Components/Home_Page/NeedHelp";
+import FindItemPage from "./Components/Home_Page/FindItemPage";
 
 // Auth & Blog Pages
 import Login from "./Components/Home_Page/Login";
@@ -51,6 +52,7 @@ import ItemSearch from "./Components/User/ItemSearch";
 import EventJoining from "./Components/User/EventJoining";
 import UserQuery from "./Components/User/UserQuery";
 import Project from "./Components/User/Project";
+import ChatPage from "./Components/User/ChatPage";
 import ChatList from "./Components/User/ChatList";
 import ChatWindow from "./Components/User/ChatWindow";
 import MessageInput from "./Components/User/MessageInput";
@@ -69,6 +71,8 @@ import AdminQuery from "./Components/Admin/AdminQuery";
 import AdminAnnouncement from "./Components/Admin/AdminAnnouncement";
 import UserList from "./Components/Admin/User";
 import AdminReviewPage from "./Components/Admin/AdminReviewPage";
+import ChatInbox from "./Components/User/ChatInbox";
+import Error404 from "./Components/ErrorPages/Error404";
 
 // Layout Wrapper
 const Layout = ({ children }) => {
@@ -110,6 +114,9 @@ const Home = () => (
     <LandingPage />
     <Element name="aboutus-section">
       <Aboutus />
+    </Element>
+    <Element name="aboutus-section">
+      <FindItemPage />
     </Element>
     <Element name="categories-section">
       <Categories />
@@ -180,7 +187,9 @@ const App = () => {
               <Route path="query" element={<UserQuery />} />
               <Route path="announcement" element={<Announcement />} />
               <Route path="projects" element={<Project />} />
-              <Route path="chat" element={<ChatLayout />} />
+              {/* <Route path="chat" element={<ChatLayout />} /> */}
+              <Route path="chat" element={<ChatInbox />} />
+              <Route path="chat/:chatId/:userId" element={<ChatPage />} />
               <Route path="user-listed-item" element={<UserListedItem />} />
               <Route path="review" element={<ReviewPage />} />
             </Route>
@@ -191,7 +200,6 @@ const App = () => {
             element={<ProtectedRoute allowedRoles={["admin", "co-admin"]} />}
           >
             <Route path="/admin" element={<AdminDashboard />}>
-              <Route index element={<h2>Welcome to Admin Dashboard</h2>} />
               <Route path="user" element={<UserList />} />
               <Route path="itemshow" element={<AdminItemShow />} />
               <Route path="manage-admin" element={<AddAdminCoAdmin />} />
@@ -206,7 +214,7 @@ const App = () => {
           </Route>
 
           {/* ❌ 404 Fallback */}
-          <Route path="*" element={<h2>404 - Page Not Found</h2>} />
+          <Route path="*" element={<Error404 />} />
         </Routes>
       </Layout>
     </Router>

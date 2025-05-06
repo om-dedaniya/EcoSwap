@@ -15,7 +15,9 @@ const AdminAnnouncement = () => {
 
   const fetchAnnouncements = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/announcements");
+      const res = await axios.get(
+        "https://ecoswap-e24p.onrender.com/api/admin/announcements"
+      );
       setAnnouncements(res.data);
     } catch (error) {
       console.error("Error fetching announcements:", error);
@@ -31,7 +33,10 @@ const AdminAnnouncement = () => {
     formData.append("active", active);
 
     try {
-      await axios.post("http://localhost:5000/api/announcements", formData);
+      await axios.post(
+        "https://ecoswap-e24p.onrender.com/api/announcements",
+        formData
+      );
       fetchAnnouncements();
       Swal.fire("Success!", "Announcement added successfully.", "success");
       setTitle("");
@@ -56,9 +61,15 @@ const AdminAnnouncement = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axios.delete(`http://localhost:5000/api/announcements/${id}`);
+          await axios.delete(
+            `https://ecoswap-e24p.onrender.com/api/announcements/${id}`
+          );
           fetchAnnouncements();
-          Swal.fire("Deleted!", "The announcement has been removed.", "success");
+          Swal.fire(
+            "Deleted!",
+            "The announcement has been removed.",
+            "success"
+          );
         } catch (error) {
           console.error("Error deleting announcement:", error);
         }
@@ -68,9 +79,12 @@ const AdminAnnouncement = () => {
 
   const toggleActiveStatus = async (id, currentStatus) => {
     try {
-      await axios.put(`http://localhost:5000/api/announcements/${id}`, {
-        active: !currentStatus,
-      });
+      await axios.put(
+        `https://ecoswap-e24p.onrender.com/api/announcements/${id}`,
+        {
+          active: !currentStatus,
+        }
+      );
 
       setAnnouncements((prev) =>
         prev.map((announcement) =>
@@ -91,11 +105,18 @@ const AdminAnnouncement = () => {
       </h2>
 
       {/* Announcement Form */}
-      <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg p-6 mb-6">
-        <h4 className="text-xl font-semibold text-gray-800 mb-4">Post New Announcement</h4>
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-lg rounded-lg p-6 mb-6"
+      >
+        <h4 className="text-xl font-semibold text-gray-800 mb-4">
+          Post New Announcement
+        </h4>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Title</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Title
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -106,7 +127,9 @@ const AdminAnnouncement = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Message</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Message
+          </label>
           <textarea
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter announcement message (optional)"
@@ -117,12 +140,23 @@ const AdminAnnouncement = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Upload Image</label>
-          <input type="file" className="w-full px-3 py-2 border rounded-lg" onChange={(e) => setImage(e.target.files[0])} />
+          <label className="block text-gray-700 font-semibold mb-2">
+            Upload Image
+          </label>
+          <input
+            type="file"
+            className="w-full px-3 py-2 border rounded-lg"
+            onChange={(e) => setImage(e.target.files[0])}
+          />
         </div>
 
         <div className="flex items-center mb-4">
-          <input type="checkbox" className="mr-2" checked={active} onChange={() => setActive(!active)} />
+          <input
+            type="checkbox"
+            className="mr-2"
+            checked={active}
+            onChange={() => setActive(!active)}
+          />
           <label className="text-gray-700 font-semibold">Set as Active</label>
         </div>
 
@@ -135,15 +169,24 @@ const AdminAnnouncement = () => {
       </form>
 
       {/* Existing Announcements */}
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Existing Announcements</h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        Existing Announcements
+      </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {announcements.map((announcement) => (
-          <div key={announcement._id} className="bg-white shadow-lg rounded-lg p-6 relative">
+          <div
+            key={announcement._id}
+            className="bg-white shadow-lg rounded-lg p-6 relative"
+          >
             <div className="absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gray-700">
               {announcement.active ? "Active" : "Inactive"}
             </div>
-            <h5 className="text-lg font-bold text-gray-800">{announcement.title || "No Title"}</h5>
-            <p className="text-gray-600 text-sm">{announcement.message || "No Message"}</p>
+            <h5 className="text-lg font-bold text-gray-800">
+              {announcement.title || "No Title"}
+            </h5>
+            <p className="text-gray-600 text-sm">
+              {announcement.message || "No Message"}
+            </p>
             {announcement.image && (
               <img
                 src={announcement.image}
@@ -154,9 +197,13 @@ const AdminAnnouncement = () => {
 
             <div className="mt-4 flex justify-between">
               <button
-                onClick={() => toggleActiveStatus(announcement._id, announcement.active)}
+                onClick={() =>
+                  toggleActiveStatus(announcement._id, announcement.active)
+                }
                 className={`px-4 py-2 rounded-lg text-white font-semibold transition-all ${
-                  announcement.active ? "bg-yellow-500 hover:bg-yellow-600" : "bg-green-500 hover:bg-green-600"
+                  announcement.active
+                    ? "bg-yellow-500 hover:bg-yellow-600"
+                    : "bg-green-500 hover:bg-green-600"
                 }`}
               >
                 {announcement.active ? "Deactivate" : "Activate"}

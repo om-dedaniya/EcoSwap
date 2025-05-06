@@ -43,7 +43,7 @@ const Signup = () => {
     setMessage("");
 
     try {
-      await axios.post("http://localhost:5000/send-otp", {
+      await axios.post("https://ecoswap-e24p.onrender.com/send-otp", {
         email: formData.email,
         mobile: formData.mobile,
       });
@@ -55,7 +55,9 @@ const Signup = () => {
         setLoading(false);
       }, 1000);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to send OTP. Try again.");
+      setMessage(
+        error.response?.data?.message || "Failed to send OTP. Try again."
+      );
       setLoading(false);
     }
   };
@@ -73,7 +75,10 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/signup", formData);
+      const response = await axios.post(
+        "https://ecoswap-e24p.onrender.com/signup",
+        formData
+      );
       setMessage(response.data.message);
       setShowOtpPopup(false);
       setTimeout(() => {
@@ -81,7 +86,9 @@ const Signup = () => {
         setLoading(false);
       }, 800);
     } catch (error) {
-      setMessage(error.response?.data?.message || "OTP verification failed. Try again.");
+      setMessage(
+        error.response?.data?.message || "OTP verification failed. Try again."
+      );
       setLoading(false);
     }
   };
@@ -89,10 +96,16 @@ const Signup = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 to-green-300 pt-24 px-4 pb-8">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md animate-fadeIn">
-        <h2 className="text-2xl font-bold text-center text-green-700 mb-1">Create an Account</h2>
-        <p className="text-sm text-center text-gray-500 mb-5">Join us and start your journey</p>
+        <h2 className="text-2xl font-bold text-center text-green-700 mb-1">
+          Create an Account
+        </h2>
+        <p className="text-sm text-center text-gray-500 mb-5">
+          Join us and start your journey
+        </p>
 
-        {message && <p className="text-sm text-red-500 text-center mb-3">{message}</p>}
+        {message && (
+          <p className="text-sm text-red-500 text-center mb-3">{message}</p>
+        )}
 
         <form className="space-y-4" onSubmit={sendOTP}>
           <div className="flex gap-2">
@@ -178,7 +191,9 @@ const Signup = () => {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 w-80 rounded-xl shadow-xl text-center animate-fadeIn">
             <h3 className="text-lg font-bold mb-2 text-gray-800">Enter OTP</h3>
-            <p className="text-sm text-gray-500 mb-3">Check your email inbox or spam folder.</p>
+            <p className="text-sm text-gray-500 mb-3">
+              Check your email inbox or spam folder.
+            </p>
             <input
               type="text"
               name="otp"
@@ -211,8 +226,12 @@ const Signup = () => {
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 w-80 rounded-xl shadow-xl text-center animate-fadeIn">
-            <h3 className="text-lg font-bold text-green-600 mb-2">Signup Successful!</h3>
-            <p className="text-sm text-gray-500 mb-4">Now you can log in to your account.</p>
+            <h3 className="text-lg font-bold text-green-600 mb-2">
+              Signup Successful!
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Now you can log in to your account.
+            </p>
             <button
               className="w-full p-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
               onClick={() => navigate("/login")}

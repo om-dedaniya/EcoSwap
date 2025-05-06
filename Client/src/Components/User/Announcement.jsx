@@ -6,7 +6,7 @@ const Announcement = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/announcements")
+      .get("https://ecoswap-e24p.onrender.com/api/announcements")
       .then((res) => {
         setAnnouncements(res.data);
       })

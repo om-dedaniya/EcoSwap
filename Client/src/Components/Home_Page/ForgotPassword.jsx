@@ -14,21 +14,35 @@ const ForgotPassword = () => {
 
   const sendOtp = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/send-forgot-password-otp", { email });
+      const response = await axios.post(
+        "https://ecoswap-e24p.onrender.com/send-forgot-password-otp",
+        { email }
+      );
       Swal.fire("Success", response.data.message, "success");
       setStep(2);
     } catch (error) {
-      Swal.fire("Error", error.response?.data?.message || "Error sending OTP", "error");
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "Error sending OTP",
+        "error"
+      );
     }
   };
 
   const verifyOtp = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/verify-otp", { email, otp });
+      const response = await axios.post(
+        "https://ecoswap-e24p.onrender.com/verify-otp",
+        { email, otp }
+      );
       Swal.fire("Success", response.data.message, "success");
       setStep(3);
     } catch (error) {
-      Swal.fire("Error", error.response?.data?.message || "Invalid OTP", "error");
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "Invalid OTP",
+        "error"
+      );
     }
   };
 
@@ -37,7 +51,10 @@ const ForgotPassword = () => {
       return Swal.fire("Error", "Passwords do not match", "error");
     }
     try {
-      const response = await axios.post("http://localhost:5000/reset-password", { email, newPassword });
+      const response = await axios.post(
+        "https://ecoswap-e24p.onrender.com/reset-password",
+        { email, newPassword }
+      );
       Swal.fire({
         title: "Success",
         text: response.data.message,
@@ -47,14 +64,20 @@ const ForgotPassword = () => {
         navigate("/login");
       });
     } catch (error) {
-      Swal.fire("Error", error.response?.data?.message || "Error updating password", "error");
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "Error updating password",
+        "error"
+      );
     }
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-[#F0FDF4] px-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md relative z-10">
-        <h2 className="text-3xl font-bold text-center text-[#1B4332] mb-1">Forgot Password</h2>
+        <h2 className="text-3xl font-bold text-center text-[#1B4332] mb-1">
+          Forgot Password
+        </h2>
         <p className="text-center text-[#4E6542] mb-6">Step {step} of 3</p>
 
         {step === 1 && (

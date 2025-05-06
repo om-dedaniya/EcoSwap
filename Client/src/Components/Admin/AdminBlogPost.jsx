@@ -21,7 +21,9 @@ const AdminBlogPost = () => {
 
   const fetchBlogs = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/blogs");
+      const response = await axios.get(
+        "https://ecoswap-e24p.onrender.com/api/blogs"
+      );
       setBlogs(response.data.reverse());
     } catch (error) {
       console.error("Error fetching blogs:", error);
@@ -34,9 +36,13 @@ const AdminBlogPost = () => {
     formData.append("file", image);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await axios.post(
+        "https://ecoswap-e24p.onrender.com/api/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
       return response.data.url;
     } catch (error) {
       console.error("Image upload failed:", error);
@@ -58,11 +64,17 @@ const AdminBlogPost = () => {
 
     try {
       if (editingBlogId) {
-        await axios.put(`http://localhost:5000/api/blogs/${editingBlogId}`, blogData);
+        await axios.put(
+          `https://ecoswap-e24p.onrender.com/api/blogs/${editingBlogId}`,
+          blogData
+        );
         Swal.fire("Success!", "Blog updated successfully.", "success");
         setEditingBlogId(null);
       } else {
-        await axios.post("http://localhost:5000/api/blogs", blogData);
+        await axios.post(
+          "https://ecoswap-e24p.onrender.com/api/blogs",
+          blogData
+        );
         Swal.fire("Success!", "Blog added successfully.", "success");
       }
 
@@ -95,7 +107,9 @@ const AdminBlogPost = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axios.delete(`http://localhost:5000/api/blogs/${id}`);
+          await axios.delete(
+            `https://ecoswap-e24p.onrender.com/api/blogs/${id}`
+          );
           Swal.fire("Deleted!", "The blog has been removed.", "success");
           fetchBlogs();
         } catch (error) {
@@ -120,9 +134,14 @@ const AdminBlogPost = () => {
       </h2>
 
       {/* Blog Form */}
-      <form onSubmit={handleSubmit} className="bg-white bg-opacity-60 shadow-xl backdrop-blur-lg rounded-lg p-6 mb-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white bg-opacity-60 shadow-xl backdrop-blur-lg rounded-lg p-6 mb-6"
+      >
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Title</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Title
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -134,7 +153,9 @@ const AdminBlogPost = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Description</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Description
+          </label>
           <textarea
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Short blog description"
@@ -145,7 +166,9 @@ const AdminBlogPost = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Content</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Content
+          </label>
           <textarea
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Write full blog content"
@@ -156,11 +179,20 @@ const AdminBlogPost = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Upload Image</label>
-          <input type="file" className="w-full px-3 py-2 border rounded-lg" onChange={(e) => setImage(e.target.files[0])} />
+          <label className="block text-gray-700 font-semibold mb-2">
+            Upload Image
+          </label>
+          <input
+            type="file"
+            className="w-full px-3 py-2 border rounded-lg"
+            onChange={(e) => setImage(e.target.files[0])}
+          />
         </div>
 
-        <button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-all">
+        <button
+          type="submit"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-all"
+        >
           {editingBlogId ? "Update Blog" : "Add Blog"}
         </button>
       </form>
@@ -176,11 +208,18 @@ const AdminBlogPost = () => {
 
       <div className="bg-white shadow-xl rounded-lg p-6">
         {currentBlogs.map((blog) => (
-          <div key={blog._id} className="flex items-center border-b py-4 space-x-4">
+          <div
+            key={blog._id}
+            className="flex items-center border-b py-4 space-x-4"
+          >
             {/* ✅ Display Blog Image */}
             {blog.image && (
               <img
-                src={blog.image.startsWith("http") ? blog.image : `http://localhost:5000/uploads/${blog.image}`}
+                src={
+                  blog.image.startsWith("http")
+                    ? blog.image
+                    : `https://ecoswap-e24p.onrender.com/uploads/${blog.image}`
+                }
                 alt={blog.title}
                 className="w-20 h-20 object-cover rounded-lg"
               />
@@ -190,10 +229,16 @@ const AdminBlogPost = () => {
               <p className="text-gray-600 text-sm">{blog.description}</p>
             </div>
             <div className="flex gap-3">
-              <button className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg" onClick={() => handleEdit(blog)}>
+              <button
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg"
+                onClick={() => handleEdit(blog)}
+              >
                 ✏ Edit
               </button>
-              <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg" onClick={() => handleDelete(blog._id)}>
+              <button
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg"
+                onClick={() => handleDelete(blog._id)}
+              >
                 🗑 Delete
               </button>
             </div>

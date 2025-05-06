@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { FiCheckCircle, FiXCircle, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import {
+  FiCheckCircle,
+  FiXCircle,
+  FiSearch,
+  FiArrowUp,
+  FiArrowDown,
+} from "react-icons/fi";
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +19,7 @@ const UserList = () => {
   const itemsPerPage = 5; // Pagination limit
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/admin/user")
+    fetch("https://ecoswap-e24p.onrender.com/api/admin/user")
       .then((res) => res.json())
       .then((data) => {
         setUsers(data);
@@ -37,7 +43,9 @@ const UserList = () => {
     if (!cityQuery) return;
 
     try {
-      const response = await fetch(`https://api.postalpincode.in/pincode/${cityQuery}`);
+      const response = await fetch(
+        `https://api.postalpincode.in/pincode/${cityQuery}`
+      );
       const data = await response.json();
 
       if (data[0].Status === "Success") {
@@ -57,12 +65,16 @@ const UserList = () => {
 
     if (name) {
       filtered = filtered.filter((user) =>
-        `${user.firstName} ${user.lastName}`.toLowerCase().includes(name.toLowerCase())
+        `${user.firstName} ${user.lastName}`
+          .toLowerCase()
+          .includes(name.toLowerCase())
       );
     }
 
     if (city) {
-      filtered = filtered.filter((user) => user.district.toLowerCase() === city.toLowerCase());
+      filtered = filtered.filter(
+        (user) => user.district.toLowerCase() === city.toLowerCase()
+      );
     }
 
     setFilteredUsers(filtered);
@@ -87,12 +99,17 @@ const UserList = () => {
   };
 
   // Get paginated users
-  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
       <div className="w-full max-w-7xl bg-white shadow-lg rounded-xl p-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">User List</h2>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">
+          User List
+        </h2>
 
         {/* Search Inputs */}
         <div className="flex flex-col sm:flex-row justify-between mb-4 gap-4">
@@ -137,7 +154,16 @@ const UserList = () => {
             <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
               <thead className="bg-blue-600 text-white">
                 <tr>
-                  {["firstName", "email", "mobile", "pincode", "district", "state", "country", "dob"].map((field) => (
+                  {[
+                    "firstName",
+                    "email",
+                    "mobile",
+                    "pincode",
+                    "district",
+                    "state",
+                    "country",
+                    "dob",
+                  ].map((field) => (
                     <th
                       key={field}
                       className="py-3 px-4 text-left cursor-pointer"
@@ -145,7 +171,11 @@ const UserList = () => {
                     >
                       {field.charAt(0).toUpperCase() + field.slice(1)}
                       {sortConfig.key === field ? (
-                        sortConfig.direction === "asc" ? <FiArrowUp className="inline ml-2" /> : <FiArrowDown className="inline ml-2" />
+                        sortConfig.direction === "asc" ? (
+                          <FiArrowUp className="inline ml-2" />
+                        ) : (
+                          <FiArrowDown className="inline ml-2" />
+                        )
                       ) : null}
                     </th>
                   ))}
@@ -155,23 +185,40 @@ const UserList = () => {
               <tbody>
                 {paginatedUsers.length > 0 ? (
                   paginatedUsers.map((user) => (
-                    <tr key={user._id} className="border-b bg-gray-50 hover:bg-gray-100 transition-all">
-                      <td className="py-3 px-4 text-gray-800 font-medium">{user.firstName} {user.lastName}</td>
+                    <tr
+                      key={user._id}
+                      className="border-b bg-gray-50 hover:bg-gray-100 transition-all"
+                    >
+                      <td className="py-3 px-4 text-gray-800 font-medium">
+                        {user.firstName} {user.lastName}
+                      </td>
                       <td className="py-3 px-4 text-gray-600">{user.email}</td>
                       <td className="py-3 px-4 text-gray-600">{user.mobile}</td>
-                      <td className="py-3 px-4 text-gray-600">{user.pincode}</td>
-                      <td className="py-3 px-4 text-gray-600">{user.district}</td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {user.pincode}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {user.district}
+                      </td>
                       <td className="py-3 px-4 text-gray-600">{user.state}</td>
-                      <td className="py-3 px-4 text-gray-600">{user.country}</td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {user.country}
+                      </td>
                       <td className="py-3 px-4 text-gray-600">{user.dob}</td>
                       <td className="py-3 px-4">
-                        {user.verified ? <FiCheckCircle className="text-green-500 text-xl" /> : <FiXCircle className="text-red-500 text-xl" />}
+                        {user.verified ? (
+                          <FiCheckCircle className="text-green-500 text-xl" />
+                        ) : (
+                          <FiXCircle className="text-red-500 text-xl" />
+                        )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" className="text-center py-4 text-gray-500">No users found</td>
+                    <td colSpan="9" className="text-center py-4 text-gray-500">
+                      No users found
+                    </td>
                   </tr>
                 )}
               </tbody>

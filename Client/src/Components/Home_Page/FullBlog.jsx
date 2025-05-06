@@ -12,7 +12,7 @@ const FullBlog = () => {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/api/blogs/${id}`)
+      .get(`https://ecoswap-e24p.onrender.com/api/blogs/${id}`)
       .then((response) => {
         if (response.data) {
           setBlog(response.data);
@@ -72,7 +72,9 @@ const FullBlog = () => {
       {/* Blog Content */}
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden p-6 sm:p-10">
         <h2 className="text-3xl font-bold text-gray-900">{blog.title}</h2>
-        <p className="text-gray-600 text-sm mt-2">Published on {formattedDate}</p>
+        <p className="text-gray-600 text-sm mt-2">
+          Published on {formattedDate}
+        </p>
 
         <img
           src={blog.image}

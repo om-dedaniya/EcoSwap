@@ -17,7 +17,9 @@ const EventPosting = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/admin-events");
+      const response = await axios.get(
+        "https://ecoswap-e24p.onrender.com/api/admin-events"
+      );
       setEvents(response.data);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -36,11 +38,17 @@ const EventPosting = () => {
 
     try {
       if (editEventId) {
-        await axios.put(`http://localhost:5000/api/events/${editEventId}`, eventData);
+        await axios.put(
+          `https://ecoswap-e24p.onrender.com/api/events/${editEventId}`,
+          eventData
+        );
         Swal.fire("Success!", "Event updated successfully!", "success");
         setEditEventId(null);
       } else {
-        await axios.post("http://localhost:5000/api/events", eventData);
+        await axios.post(
+          "https://ecoswap-e24p.onrender.com/api/events",
+          eventData
+        );
         Swal.fire("Success!", "Event posted successfully!", "success");
       }
       resetForm();
@@ -80,7 +88,9 @@ const EventPosting = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axios.delete(`http://localhost:5000/api/events/${id}`);
+          await axios.delete(
+            `https://ecoswap-e24p.onrender.com/api/events/${id}`
+          );
           Swal.fire("Deleted!", "The event has been removed.", "success");
           fetchEvents();
         } catch (error) {
@@ -97,9 +107,14 @@ const EventPosting = () => {
       </h2>
 
       {/* Event Form */}
-      <form onSubmit={handleSubmit} className="bg-white bg-opacity-80 shadow-xl backdrop-blur-lg rounded-lg p-6 mb-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white bg-opacity-80 shadow-xl backdrop-blur-lg rounded-lg p-6 mb-6"
+      >
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Event Name</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Event Name
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -111,7 +126,9 @@ const EventPosting = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Event Date</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Event Date
+          </label>
           <input
             type="date"
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -122,7 +139,9 @@ const EventPosting = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Event Type</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Event Type
+          </label>
           <select
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={eventType}
@@ -135,7 +154,9 @@ const EventPosting = () => {
 
         {eventType === "Physical" && (
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">Location</label>
+            <label className="block text-gray-700 font-semibold mb-2">
+              Location
+            </label>
             <input
               type="text"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -148,7 +169,9 @@ const EventPosting = () => {
         )}
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-semibold mb-2">Total Participants</label>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Total Participants
+          </label>
           <input
             type="number"
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -169,16 +192,24 @@ const EventPosting = () => {
 
       {/* Event List */}
       <div className="bg-white shadow-xl rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Upcoming Events</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          Upcoming Events
+        </h3>
 
         <ul className="divide-y divide-gray-300">
           {events.length > 0 ? (
             events.map((event) => (
-              <li key={event._id} className="flex justify-between items-center py-4">
+              <li
+                key={event._id}
+                className="flex justify-between items-center py-4"
+              >
                 <div>
-                  <h4 className="text-lg font-bold text-gray-800">{event.eventName}</h4>
+                  <h4 className="text-lg font-bold text-gray-800">
+                    {event.eventName}
+                  </h4>
                   <p className="text-gray-600 text-sm">
-                    {event.eventDate} | {event.eventType} | {event.location} | {event.totalParticipants} Participants
+                    {event.eventDate} | {event.eventType} | {event.location} |{" "}
+                    {event.totalParticipants} Participants
                   </p>
                 </div>
                 <div className="flex gap-3">
