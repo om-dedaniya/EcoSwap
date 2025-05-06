@@ -94,7 +94,7 @@ const Dashboard = () => {
 
   return (
     <div
-      className={`flex max-h-screen ${
+      className={`flex  ${
         isDarkMode ? "dark bg-gray-900" : "bg-gray-100"
       } relative font-inter transition-colors duration-300`}
     >
